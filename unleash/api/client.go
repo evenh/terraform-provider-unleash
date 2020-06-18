@@ -17,7 +17,7 @@ const (
 type client struct {
 	userAgent  string
 	httpClient *resty.Client
-	auth AuthMechanism
+	auth       AuthMechanism
 }
 
 // TODO: Validate baseUrl?
@@ -52,7 +52,7 @@ func NewClient(baseUrl string, userAgent string, authMechanism AuthMechanism) (*
 	return &client{
 		userAgent:  userAgent,
 		httpClient: c,
-		auth: authMechanism,
+		auth:       authMechanism,
 	}, nil
 }
 

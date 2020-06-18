@@ -25,20 +25,21 @@ func resourceFeatureToggle() *schema.Resource {
 			DESCRIPTION: {
 				Type:        schema.TypeString,
 				Required:    false,
+				Optional:    true,
 				Description: "What this feature toggle represents",
 			},
 			ENABLED: {
 				Type:        schema.TypeBool,
-				Required:    true,
 				Default:     false,
+				Optional:    true,
 				Description: "Whether this feature toggle should be enabled or not",
 			},
-			STRATEGIES: {
+			/*STRATEGIES: {
 				// TODO: key is strategy name
 				Type:        schema.TypeSet,
-				Required:    false,
+				Optional:    true,
 				Description: "Which strategies shall be applied to this feature toggle",
-			},
+			},*/
 		},
 	}
 }

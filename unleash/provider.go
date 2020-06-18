@@ -2,6 +2,7 @@ package unleash
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -35,26 +36,31 @@ func Provider() *schema.Provider {
 				Description: "The Unleash API endpoint, e.g. http://localhost:4242/api",
 			},
 			auth: {
-				Type:     schema.TypeSet,
-				Optional: false,
-				MinItems: 1,
-				MaxItems: 1,
+				Type:        schema.TypeList,
+				Required:    true,
+				MinItems:    1,
+				MaxItems:    1,
 				Description: "Authentication mechanism to use for communicating with the Unleash API",
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						auth_unsecure: {
-							Type:     schema.TypeSet,
+							Type:     schema.TypeList,
+							Optional: true,
 							Required: false,
 							MinItems: 1,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									auth_unsecure_email: {
-										Type: schema.TypeString,
+										Type:          schema.TypeString,
+										Optional:      true,
+										ConflictsWith: []string{auth + "." + auth_unsecure + ".0." + auth_unsecure_username},
 									},
 									auth_unsecure_username: {
-										Type:         schema.TypeString,
-										ValidateFunc: validation.StringIsNotWhiteSpace,
+										Type:          schema.TypeString,
+										Optional:      true,
+										ConflictsWith: []string{auth + "." + auth_unsecure + ".0." + auth_unsecure_email},
+										ValidateFunc:  validation.StringIsNotWhiteSpace,
 									},
 								},
 							},
@@ -73,6 +79,10 @@ func Provider() *schema.Provider {
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	baseUrl := d.Get(api_endpoint).(string)
 	userAgent := fmt.Sprintf("terraform-provider-unleash/%s (+https://github.com/evenh/terraform-provider-unleash) Terraform Plugin SDK/%s", version.ProviderVersion, meta.SDKVersionString())
+
+	if v, ok := d.GetOk(auth); ok {
+		log.Printf("DEBUG: auth=%s", v)
+	}
 
 	// TODO: Not hardcode
 	auth := &api.UnsecureAuthentication{

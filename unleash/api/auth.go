@@ -8,7 +8,7 @@ type AuthMechanism interface {
 }
 
 type UnsecureAuthentication struct {
-	Email string
+	Email    string
 	Username string
 }
 
@@ -18,8 +18,7 @@ func (a UnsecureAuthentication) headers() map[string]string {
 
 func (a UnsecureAuthentication) body() map[string]string {
 	return map[string]string{
-		"email": a.Email,
+		"email":    a.Email,
 		"username": a.Username,
 	}
 }
-
