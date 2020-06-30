@@ -1,6 +1,12 @@
 package unleash
 
-import "github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+import (
+	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+
+	"github.com/evenh/terraform-provider-unleash/unleash/api"
+)
 
 // TODO: Add variants
 func resourceFeatureToggle() *schema.Resource {
@@ -45,10 +51,39 @@ func resourceFeatureToggle() *schema.Resource {
 }
 
 func resourceFeatureToggleCreate(d *schema.ResourceData, metaRaw interface{}) error {
-	return nil
+	client := metaRaw.(*api.Client)
+
+	// TODO: Support more fields
+	f := api.Feature{
+		Name:        d.Get(NAME).(string),
+		Description: d.Get(DESCRIPTION).(string),
+		Enabled:     d.Get(ENABLED).(bool),
+		Strategies:  []api.Strategy{{Name: "default", Parameters: api.ParameterMap{}}}, // TODO: Intentionally left to hardcoded default for now
+	}
+
+	err := client.CreateFeatureFlag(f)
+
+	if err != nil {
+		return fmt.Errorf("could not create feature toggle: %w", err)
+	}
+
+	return resourceFeatureToggleRead(d, metaRaw)
 }
 
 func resourceFeatureToggleRead(d *schema.ResourceData, metaRaw interface{}) error {
+	client := metaRaw.(*api.Client)
+	toggleName := d.Get(NAME).(string)
+
+	f, err := client.FeatureFlagByName(toggleName)
+	if err != nil {
+		return err
+	}
+
+	d.SetId(f.Name)
+	d.Set(NAME, f.Name)
+	d.Set(DESCRIPTION, f.Description)
+	d.Set(ENABLED, f.Enabled)
+
 	return nil
 }
 
@@ -57,11 +92,19 @@ func resourceFeatureToggleUpdate(d *schema.ResourceData, metaRaw interface{}) er
 }
 
 func resourceFeatureToggleDelete(d *schema.ResourceData, metaRaw interface{}) error {
-	return nil
+	client := metaRaw.(*api.Client)
+	toggleName := d.Get(NAME).(string)
+
+	return client.DeleteFeatureFlag(toggleName)
 }
 
 func resourceFeatureToggleExists(d *schema.ResourceData, metaRaw interface{}) (bool, error) {
-	return false, nil
+	client := metaRaw.(*api.Client)
+	toggleName := d.Get(NAME).(string)
+
+	f, err := client.FeatureFlagByName(toggleName)
+
+	return f != nil, err
 }
 
 func resourceFeatureToggleImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {

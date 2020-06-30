@@ -17,7 +17,7 @@ func init() {
 	rand.Seed(time.Now().UTC().UnixNano())
 }
 
-func RunWithUnleash(testFunc func() int) {
+func RunWithUnleash(testFunc func(portNumber int) int) {
 	commonIdentifier := randomIdentifier()
 
 	// Containers definitely run in the background
@@ -29,6 +29,7 @@ func RunWithUnleash(testFunc func() int) {
 			CheckDuplicate: true,
 			Name:           commonIdentifier,
 			Driver:         "bridge",
+			SkipReaper:     false,
 		},
 	})
 
@@ -40,13 +41,20 @@ func RunWithUnleash(testFunc func() int) {
 
 	// Define containers
 	pgReq, pgPort := postgresRequest(commonIdentifier)
-	unleashReq, _ := unleashRequest(commonIdentifier, pgPort)
+	unleashReq, unleashPort := unleashRequest(commonIdentifier, pgPort)
 
 	// Start containers in order
 	startedContainers := startContainers(ctx, pgReq, unleashReq)
 
+	// Expose mapped unleash port
+	actualUnleashPort, err := startedContainers[1].MappedPort(ctx, unleashPort)
+	if err != nil {
+		log.Fatal("Could not get mapped port of Unleash container: ", err)
+	}
+
 	// Run the actual tests
-	returnCode := testFunc()
+	log.Printf("Unleash container running at port %d", actualUnleashPort.Int())
+	returnCode := testFunc(actualUnleashPort.Int())
 
 	// Stop containers after test run
 	log.Println("Tearing down containers")

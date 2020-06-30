@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/cookiejar"
+	"strings"
 	"time"
 
 	"github.com/go-resty/resty/v2"
@@ -14,14 +15,14 @@ const (
 	featuresEndpoint = "/admin/features"
 )
 
-type client struct {
+type Client struct {
 	userAgent  string
 	httpClient *resty.Client
 	auth       AuthMechanism
 }
 
 // TODO: Validate baseUrl?
-func NewClient(baseUrl string, userAgent string, authMechanism AuthMechanism) (*client, error) {
+func NewClient(baseUrl string, userAgent string, authMechanism AuthMechanism) (*Client, error) {
 	if authMechanism == nil {
 		return nil, fmt.Errorf("an authentication mechanism must be provided")
 	}
@@ -49,14 +50,14 @@ func NewClient(baseUrl string, userAgent string, authMechanism AuthMechanism) (*
 		return false
 	})
 
-	return &client{
+	return &Client{
 		userAgent:  userAgent,
 		httpClient: c,
 		auth:       authMechanism,
 	}, nil
 }
 
-func (c *client) ListFeatureFlags() ([]Feature, error) {
+func (c *Client) ListFeatureFlags() ([]Feature, error) {
 	resp, err := c.httpClient.R().SetResult(FeatureResponse{}).Get(featuresEndpoint)
 
 	if err := determineError(resp, err); err != nil {
@@ -66,9 +67,36 @@ func (c *client) ListFeatureFlags() ([]Feature, error) {
 	return resp.Result().(*FeatureResponse).Features, nil
 }
 
+func (c *Client) FeatureFlagByName(featureName string) (*Feature, error) {
+	features, err := c.ListFeatureFlags()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, f := range features {
+		if strings.ToLower(f.Name) == strings.ToLower(featureName) {
+			return &f, nil
+		}
+	}
+
+	return nil, nil
+}
+
+func (c *Client) CreateFeatureFlag(feature Feature) error {
+	resp, err := c.httpClient.R().SetBody(feature).Post(featuresEndpoint)
+
+	return determineError(resp, err)
+}
+
+func (c *Client) DeleteFeatureFlag(name string) error {
+	resp, err := c.httpClient.R().Delete(featuresEndpoint + "/" + name)
+
+	return determineError(resp, err)
+}
+
 func determineError(resp *resty.Response, err error) error {
 	if err != nil {
-		return fmt.Errorf("technical error while listing feature flags: %w", err)
+		return fmt.Errorf("technical error while communicating with unleash API: %w", err)
 	}
 
 	if resp.IsError() {
