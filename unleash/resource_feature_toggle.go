@@ -64,7 +64,7 @@ func resourceFeatureToggleCreate(d *schema.ResourceData, metaRaw interface{}) er
 	err := client.CreateFeatureFlag(f)
 
 	if err != nil {
-		return fmt.Errorf("could not create feature toggle: %w", err)
+		return fmt.Errorf("could not create feature toggle '%s': %w", d.Get(NAME), err)
 	}
 
 	return resourceFeatureToggleRead(d, metaRaw)
@@ -76,7 +76,7 @@ func resourceFeatureToggleRead(d *schema.ResourceData, metaRaw interface{}) erro
 
 	f, err := client.FeatureFlagByName(toggleName)
 	if err != nil {
-		return err
+		return fmt.Errorf("could not read feature toggle '%s': %w", d.Get(NAME), err)
 	}
 
 	d.SetId(f.Name)
@@ -88,14 +88,31 @@ func resourceFeatureToggleRead(d *schema.ResourceData, metaRaw interface{}) erro
 }
 
 func resourceFeatureToggleUpdate(d *schema.ResourceData, metaRaw interface{}) error {
-	return nil
+	client := metaRaw.(*api.Client)
+
+	// TODO: Support more fields
+	f := api.Feature{
+		Name:        d.Get(NAME).(string),
+		Description: d.Get(DESCRIPTION).(string),
+		Enabled:     d.Get(ENABLED).(bool),
+		Strategies:  []api.Strategy{{Name: "default", Parameters: api.ParameterMap{}}}, // TODO: Intentionally left to hardcoded default for now
+	}
+
+	err := client.UpdateFeatureFlag(d.Id(), f)
+	if err != nil {
+		return fmt.Errorf("could not update feature toggle '%s': %w", d.Get(NAME), err)
+	}
+
+	return resourceFeatureToggleRead(d, metaRaw)
 }
 
 func resourceFeatureToggleDelete(d *schema.ResourceData, metaRaw interface{}) error {
 	client := metaRaw.(*api.Client)
-	toggleName := d.Get(NAME).(string)
+	if err := client.DeleteFeatureFlag(d.Id()); err != nil {
+		return fmt.Errorf("could not delete feature toggle '%s': %w", d.Get(NAME), err)
+	}
 
-	return client.DeleteFeatureFlag(toggleName)
+	return nil
 }
 
 func resourceFeatureToggleExists(d *schema.ResourceData, metaRaw interface{}) (bool, error) {
@@ -107,6 +124,7 @@ func resourceFeatureToggleExists(d *schema.ResourceData, metaRaw interface{}) (b
 	return f != nil, err
 }
 
+// TODO: Support import
 func resourceFeatureToggleImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	return []*schema.ResourceData{d}, nil
 }

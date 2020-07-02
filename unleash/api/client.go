@@ -88,6 +88,12 @@ func (c *Client) CreateFeatureFlag(feature Feature) error {
 	return determineError(resp, err)
 }
 
+func (c *Client) UpdateFeatureFlag(name string, feature Feature) error {
+	resp, err := c.httpClient.R().SetBody(feature).Put(featuresEndpoint + "/" + name)
+
+	return determineError(resp, err)
+}
+
 func (c *Client) DeleteFeatureFlag(name string) error {
 	resp, err := c.httpClient.R().Delete(featuresEndpoint + "/" + name)
 

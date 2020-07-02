@@ -4,18 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"math/rand"
 	"os"
 	"time"
 
 	"github.com/docker/go-connections/nat"
+	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
-
-func init() {
-	rand.Seed(time.Now().UTC().UnixNano())
-}
 
 func RunWithUnleash(testFunc func(portNumber int) int) {
 	commonIdentifier := randomIdentifier()
@@ -120,9 +116,6 @@ func unleashRequest(identifier string, pgPort nat.Port) (testcontainers.Containe
 }
 
 func randomIdentifier() string {
-	min := 1
-	max := 9999
-	n := rand.Intn(max-min+1) + min
-
+	n := acctest.RandIntRange(1, 9999)
 	return fmt.Sprintf("tf-unleash-%d", n)
 }
