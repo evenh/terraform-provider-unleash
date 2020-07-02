@@ -9,7 +9,7 @@ import (
 	"github.com/evenh/terraform-provider-unleash/unleash/internal/test"
 )
 
-var port = 4242
+var port int
 
 func TestMain(m *testing.M) {
 	test.RunWithUnleash(func(unleashPort int) int {
@@ -18,16 +18,16 @@ func TestMain(m *testing.M) {
 	})
 }
 
-func TestOne(t *testing.T) {
-	resourceName := "unleash_feature_toggle.test"
+func TestAccUnleashFeatureToggle_basic(t *testing.T) {
+	resourceName := "unleash_feature_toggle.basic"
 
 	resource.ParallelTest(t, resource.TestCase{
 		Providers: testAccProviders,
 		Steps: []resource.TestStep{
 			{
-				Config: testAccUnleashFeatureToggle_createAToggle(),
+				Config: testAccUnleashFeatureToggle_basic(),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, NAME, "acctest-42"),
+					resource.TestCheckResourceAttr(resourceName, NAME, "acctest-basic-42"),
 					resource.TestCheckResourceAttr(resourceName, DESCRIPTION, "It works"),
 					resource.TestCheckResourceAttr(resourceName, ENABLED, "true"),
 				),
@@ -36,7 +36,7 @@ func TestOne(t *testing.T) {
 	})
 }
 
-func testAccUnleashFeatureToggle_createAToggle() string {
+func testAccUnleashFeatureToggle_basic() string {
 	return fmt.Sprintf(`
 provider "unleash" {
   api_endpoint = "http://localhost:%d/api"
@@ -47,8 +47,8 @@ provider "unleash" {
     }
   }
 }
-resource "unleash_feature_toggle" "test" {
-  name        = "acctest-%d"
+resource "unleash_feature_toggle" "basic" {
+  name        = "acctest-basic-%d"
   description = "It works"
   enabled     = true
 }
