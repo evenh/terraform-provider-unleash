@@ -43,7 +43,7 @@ provider "unleash" {
 
   auth {
     unsecure {
-       username = "acceptance@test.com"
+       email = "acceptance-test@unleash.provider.tf"
     }
   }
 }

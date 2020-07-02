@@ -36,7 +36,7 @@ func Provider() *schema.Provider {
 				Description: "The Unleash API endpoint, e.g. http://localhost:4242/api",
 			},
 			auth: {
-				Type:        schema.TypeList,
+				Type:        schema.TypeSet,
 				Required:    true,
 				MinItems:    1,
 				MaxItems:    1,
@@ -47,20 +47,17 @@ func Provider() *schema.Provider {
 							Type:     schema.TypeList,
 							Optional: true,
 							Required: false,
-							MinItems: 1,
 							MaxItems: 1,
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									auth_unsecure_email: {
-										Type:          schema.TypeString,
-										Optional:      true,
-										ConflictsWith: []string{auth + "." + auth_unsecure + ".0." + auth_unsecure_username},
+										Type:     schema.TypeString,
+										Optional: true,
 									},
 									auth_unsecure_username: {
-										Type:          schema.TypeString,
-										Optional:      true,
-										ConflictsWith: []string{auth + "." + auth_unsecure + ".0." + auth_unsecure_email},
-										ValidateFunc:  validation.StringIsNotWhiteSpace,
+										Type:         schema.TypeString,
+										Optional:     true,
+										ValidateFunc: validation.StringIsNotWhiteSpace,
 									},
 								},
 							},
@@ -80,20 +77,45 @@ func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	baseUrl := d.Get(api_endpoint).(string)
 	userAgent := fmt.Sprintf("terraform-provider-unleash/%s (+https://github.com/evenh/terraform-provider-unleash) Terraform Plugin SDK/%s", version.ProviderVersion, meta.SDKVersionString())
 
-	if v, ok := d.GetOk(auth); ok {
-		log.Printf("DEBUG: auth=%s", v)
+	providedAuth, err := expandAuthMechanism(d)
+	if err != nil {
+		return nil, fmt.Errorf("could not configure authentication mechanism: %w", err)
 	}
 
-	// TODO: Not hardcode
-	auth := &api.UnsecureAuthentication{
-		Email: "even.holthe@me.com",
-	}
-
-	client, err := api.NewClient(baseUrl, userAgent, auth)
-
+	client, err := api.NewClient(baseUrl, userAgent, providedAuth)
 	if err != nil {
 		return nil, fmt.Errorf("could not configure Unleash REST client: %w", err)
 	}
 
 	return client, nil
+}
+
+func expandAuthMechanism(d *schema.ResourceData) (api.AuthMechanism, error) {
+	var providedAuth api.AuthMechanism
+	authMechanisms := map[string]map[string]interface{}{}
+
+	if auth, ok := d.GetOk(auth); ok {
+		// This is some hacky code for sure, PRs welcome
+		for _, authMechanism := range auth.(*schema.Set).List() {
+			for mechanismName, mechanismArgs := range authMechanism.(map[string]interface{}) {
+				authMechanisms[mechanismName] = mechanismArgs.([]interface{})[0].(map[string]interface{})
+			}
+		}
+	}
+
+	// Handle unsecure (should be "insecure") auth scheme
+	if m, ok := authMechanisms[auth_unsecure]; ok {
+		log.Println("[DEBUG] Using unsecure authentication")
+		providedAuth = api.UnsecureAuthentication{
+			Email:    m[auth_unsecure_email].(string),
+			Username: m[auth_unsecure_username].(string),
+		}
+	}
+
+	// If no auth mechanism is specified
+	if providedAuth == nil {
+		return nil, fmt.Errorf("provider is missing authentication configuration")
+	}
+
+	return providedAuth, nil
 }
