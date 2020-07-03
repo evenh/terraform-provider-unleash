@@ -3,6 +3,7 @@ package unleash
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
@@ -14,7 +15,9 @@ import (
 
 // Environment Variables
 const (
-	UNLEASH_API_ENDPOINT = "UNLEASH_API_ENDPOINT"
+	UNLEASH_API_ENDPOINT  = "UNLEASH_API_ENDPOINT"
+	UNLEASH_AUTH_USERNAME = "UNLEASH_AUTH_USERNAME"
+	UNLEASH_AUTH_EMAIL    = "UNLEASH_AUTH_EMAIL"
 )
 
 // Provider keys
@@ -37,7 +40,7 @@ func Provider() *schema.Provider {
 			},
 			auth: {
 				Type:        schema.TypeSet,
-				Required:    true,
+				Optional:    true,
 				MinItems:    1,
 				MaxItems:    1,
 				Description: "Authentication mechanism to use for communicating with the Unleash API",
@@ -51,11 +54,13 @@ func Provider() *schema.Provider {
 							Elem: &schema.Resource{
 								Schema: map[string]*schema.Schema{
 									auth_unsecure_email: {
-										Type:     schema.TypeString,
-										Optional: true,
+										Type:        schema.TypeString,
+										DefaultFunc: schema.EnvDefaultFunc(UNLEASH_AUTH_EMAIL, nil),
+										Optional:    true,
 									},
 									auth_unsecure_username: {
 										Type:         schema.TypeString,
+										DefaultFunc:  schema.EnvDefaultFunc(UNLEASH_AUTH_USERNAME, nil),
 										Optional:     true,
 										ValidateFunc: validation.StringIsNotWhiteSpace,
 									},
@@ -104,11 +109,29 @@ func expandAuthMechanism(d *schema.ResourceData) (api.AuthMechanism, error) {
 	}
 
 	// Handle unsecure (should be "insecure") auth scheme
-	if m, ok := authMechanisms[auth_unsecure]; ok {
-		log.Println("[DEBUG] Using unsecure authentication")
-		providedAuth = api.UnsecureAuthentication{
-			Email:    m[auth_unsecure_email].(string),
-			Username: m[auth_unsecure_username].(string),
+	{
+		var email, username string
+
+		if m, ok := authMechanisms[auth_unsecure]; ok {
+			// Read from config
+			email = m[auth_unsecure_email].(string)
+			username = m[auth_unsecure_username].(string)
+		} else {
+			// Read from env
+			if v, ok := os.LookupEnv(UNLEASH_AUTH_EMAIL); ok {
+				email = v
+			}
+			if v, ok := os.LookupEnv(UNLEASH_AUTH_USERNAME); ok {
+				username = v
+			}
+		}
+
+		if len(email) > 0 || len(username) > 0 {
+			log.Println("[DEBUG] Using unsecure authentication")
+			providedAuth = api.UnsecureAuthentication{
+				Email:    email,
+				Username: username,
+			}
 		}
 	}
 

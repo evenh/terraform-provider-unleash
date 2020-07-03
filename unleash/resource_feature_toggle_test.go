@@ -2,6 +2,7 @@ package unleash
 
 import (
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
@@ -10,11 +11,11 @@ import (
 	"github.com/evenh/terraform-provider-unleash/unleash/internal/test"
 )
 
-var port int
-
 func TestMain(m *testing.M) {
 	test.RunWithUnleash(func(unleashPort int) int {
-		port = unleashPort
+		_ = os.Setenv(UNLEASH_API_ENDPOINT, fmt.Sprintf("http://localhost:%d/api", unleashPort))
+		_ = os.Setenv(UNLEASH_AUTH_EMAIL, "acceptance-test@unleash.provider.tf")
+
 		return m.Run()
 	})
 }
@@ -29,10 +30,15 @@ func TestAccUnleashFeatureToggle_basic(t *testing.T) {
 			{
 				Config: testAccUnleashFeatureToggle_basic(id),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, NAME, "acctest-" + id),
+					resource.TestCheckResourceAttr(resourceName, NAME, "acctest-"+id),
 					resource.TestCheckResourceAttr(resourceName, DESCRIPTION, "It works"),
 					resource.TestCheckResourceAttr(resourceName, ENABLED, "true"),
 				),
+			},
+			{
+				ResourceName:      resourceName,
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 		},
 	})
@@ -48,7 +54,7 @@ func TestAccUnleashFeatureToggle_update(t *testing.T) {
 			{
 				Config: testAccUnleashFeatureToggle_basic(id),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, NAME, "acctest-" + id),
+					resource.TestCheckResourceAttr(resourceName, NAME, "acctest-"+id),
 					resource.TestCheckResourceAttr(resourceName, DESCRIPTION, "It works"),
 					resource.TestCheckResourceAttr(resourceName, ENABLED, "true"),
 				),
@@ -56,7 +62,7 @@ func TestAccUnleashFeatureToggle_update(t *testing.T) {
 			{
 				Config: testAccUnleashFeatureToggle_update(id),
 				Check: resource.ComposeTestCheckFunc(
-					resource.TestCheckResourceAttr(resourceName, NAME, "acctest-" + id),
+					resource.TestCheckResourceAttr(resourceName, NAME, "acctest-"+id),
 					resource.TestCheckResourceAttr(resourceName, DESCRIPTION, "Update works"),
 					resource.TestCheckResourceAttr(resourceName, ENABLED, "false"),
 				),
@@ -67,38 +73,20 @@ func TestAccUnleashFeatureToggle_update(t *testing.T) {
 
 func testAccUnleashFeatureToggle_basic(id string) string {
 	return fmt.Sprintf(`
-%s
-
 resource "unleash_feature_toggle" "basic" {
   name        = "acctest-%s"
   description = "It works"
   enabled     = true
 }
-`, providerBlock(), id)
+`, id)
 }
 
 func testAccUnleashFeatureToggle_update(id string) string {
 	return fmt.Sprintf(`
-%s
-
 resource "unleash_feature_toggle" "basic" {
   name        = "acctest-%s"
   description = "Update works"
   enabled     = false
 }
-`, providerBlock(), id)
-}
-
-func providerBlock() string {
-	return fmt.Sprintf(`
-provider "unleash" {
-  api_endpoint = "http://localhost:%d/api"
-
-  auth {
-    unsecure {
-       email = "acceptance-test@unleash.provider.tf"
-    }
-  }
-}
-`, port)
+`, id)
 }

@@ -124,7 +124,10 @@ func resourceFeatureToggleExists(d *schema.ResourceData, metaRaw interface{}) (b
 	return f != nil, err
 }
 
-// TODO: Support import
 func resourceFeatureToggleImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+	id := d.Id()
+
+	_ = d.Set(NAME, id)
+
 	return []*schema.ResourceData{d}, nil
 }
