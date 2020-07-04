@@ -8,11 +8,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
 
-	"github.com/evenh/terraform-provider-unleash/unleash/internal/test"
+	"github.com/evenh/terraform-provider-unleash/unleash/acceptance"
 )
 
 func TestMain(m *testing.M) {
-	test.RunWithUnleash(func(unleashPort int) int {
+	acceptance.RunWithUnleash(func(unleashPort int) int {
 		_ = os.Setenv(UNLEASH_API_ENDPOINT, fmt.Sprintf("http://localhost:%d/api", unleashPort))
 		_ = os.Setenv(UNLEASH_AUTH_EMAIL, "acceptance-test@unleash.provider.tf")
 

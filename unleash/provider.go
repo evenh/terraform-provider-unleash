@@ -10,14 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/meta"
 
 	"github.com/evenh/terraform-provider-unleash/unleash/api"
-	"github.com/evenh/terraform-provider-unleash/version"
-)
-
-// Environment Variables
-const (
-	UNLEASH_API_ENDPOINT  = "UNLEASH_API_ENDPOINT"
-	UNLEASH_AUTH_USERNAME = "UNLEASH_AUTH_USERNAME"
-	UNLEASH_AUTH_EMAIL    = "UNLEASH_AUTH_EMAIL"
 )
 
 // Provider keys
@@ -80,7 +72,7 @@ func Provider() *schema.Provider {
 
 func providerConfigure(d *schema.ResourceData) (interface{}, error) {
 	baseUrl := d.Get(api_endpoint).(string)
-	userAgent := fmt.Sprintf("terraform-provider-unleash/%s (+https://github.com/evenh/terraform-provider-unleash) Terraform Plugin SDK/%s", version.ProviderVersion, meta.SDKVersionString())
+	userAgent := fmt.Sprintf("terraform-provider-unleash/%s (+https://github.com/evenh/terraform-provider-unleash) Terraform Plugin SDK/%s", ProviderVersion, meta.SDKVersionString())
 
 	providedAuth, err := expandAuthMechanism(d)
 	if err != nil {
