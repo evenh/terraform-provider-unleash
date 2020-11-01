@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/docker/go-connections/nat"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
 )
@@ -102,7 +102,7 @@ func unleashRequest(identifier string, pgPort nat.Port) (testcontainers.Containe
 	port, _ := nat.NewPort("tcp", "4242")
 	req := testcontainers.ContainerRequest{
 		Name:         fmt.Sprintf("%s-app", identifier),
-		Image:        "unleashorg/unleash-server:3.3",
+		Image:        "unleashorg/unleash-server:3.6",
 		ExposedPorts: []string{port.Port()},
 		Env: map[string]string{
 			"NODE_ENV":     "acceptance-test",

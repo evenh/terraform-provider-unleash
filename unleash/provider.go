@@ -1,13 +1,15 @@
 package unleash
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/hashicorp/terraform-plugin-sdk/meta"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/validation"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/meta"
 
 	"github.com/evenh/terraform-provider-unleash/unleash/api"
 )
@@ -66,25 +68,30 @@ func Provider() *schema.Provider {
 		ResourcesMap: map[string]*schema.Resource{
 			"unleash_feature_toggle": resourceFeatureToggle(),
 		},
-		ConfigureFunc: providerConfigure,
+		ConfigureContextFunc: providerConfigure,
 	}
 }
 
-func providerConfigure(d *schema.ResourceData) (interface{}, error) {
+func providerConfigure(ctx context.Context, d *schema.ResourceData) (interface{}, diag.Diagnostics) {
 	baseUrl := d.Get(api_endpoint).(string)
+	// TODO: Use this, but from instance of Provider
+	// schema.Provider.UserAgent("terraform-provider-unleash", ProviderVersion)
 	userAgent := fmt.Sprintf("terraform-provider-unleash/%s (+https://github.com/evenh/terraform-provider-unleash) Terraform Plugin SDK/%s", ProviderVersion, meta.SDKVersionString())
+
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
 
 	providedAuth, err := expandAuthMechanism(d)
 	if err != nil {
-		return nil, fmt.Errorf("could not configure authentication mechanism: %w", err)
+		return nil, diag.FromErr(fmt.Errorf("could not configure authentication mechanism: %w", err))
 	}
 
 	client, err := api.NewClient(baseUrl, userAgent, providedAuth)
 	if err != nil {
-		return nil, fmt.Errorf("could not configure Unleash REST client: %w", err)
+		return nil, diag.FromErr(fmt.Errorf("could not configure Unleash REST client: %w", err))
 	}
 
-	return client, nil
+	return client, diags
 }
 
 func expandAuthMechanism(d *schema.ResourceData) (api.AuthMechanism, error) {

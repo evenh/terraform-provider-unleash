@@ -1,9 +1,11 @@
 package unleash
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/diag"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/schema"
 
 	"github.com/evenh/terraform-provider-unleash/unleash/api"
 )
@@ -11,14 +13,13 @@ import (
 // TODO: Add variants
 func resourceFeatureToggle() *schema.Resource {
 	return &schema.Resource{
-		Create: resourceFeatureToggleCreate,
-		Read:   resourceFeatureToggleRead,
-		Update: resourceFeatureToggleUpdate,
-		Delete: resourceFeatureToggleDelete,
-		Exists: resourceFeatureToggleExists,
+		CreateContext: resourceFeatureToggleCreate,
+		ReadContext:   resourceFeatureToggleRead,
+		UpdateContext: resourceFeatureToggleUpdate,
+		DeleteContext: resourceFeatureToggleDelete,
 
 		Importer: &schema.ResourceImporter{
-			State: resourceFeatureToggleImport,
+			StateContext: resourceFeatureToggleImport,
 		},
 
 		Schema: map[string]*schema.Schema{
@@ -50,8 +51,11 @@ func resourceFeatureToggle() *schema.Resource {
 	}
 }
 
-func resourceFeatureToggleCreate(d *schema.ResourceData, metaRaw interface{}) error {
+func resourceFeatureToggleCreate(ctx context.Context, d *schema.ResourceData, metaRaw interface{}) diag.Diagnostics {
 	client := metaRaw.(*api.Client)
+
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
 
 	// TODO: Support more fields
 	f := api.Feature{
@@ -64,19 +68,26 @@ func resourceFeatureToggleCreate(d *schema.ResourceData, metaRaw interface{}) er
 	err := client.CreateFeatureFlag(f)
 
 	if err != nil {
-		return fmt.Errorf("could not create feature toggle '%s': %w", d.Get(NAME), err)
+		return diag.FromErr(fmt.Errorf("could not create feature toggle '%s': %w", d.Get(NAME), err))
 	}
 
-	return resourceFeatureToggleRead(d, metaRaw)
+	resourceFeatureToggleRead(ctx, d, metaRaw)
+
+	return diags
 }
 
-func resourceFeatureToggleRead(d *schema.ResourceData, metaRaw interface{}) error {
+func resourceFeatureToggleRead(ctx context.Context, d *schema.ResourceData, metaRaw interface{}) diag.Diagnostics {
 	client := metaRaw.(*api.Client)
 	toggleName := d.Get(NAME).(string)
 
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
+
 	f, err := client.FeatureFlagByName(toggleName)
 	if err != nil {
-		return fmt.Errorf("could not read feature toggle '%s': %w", d.Get(NAME), err)
+		// Signals that the flag doesn't exist upstream and should be removed from the state
+		d.SetId("")
+		return diag.FromErr(fmt.Errorf("could not read feature toggle '%s': %w", d.Get(NAME), err))
 	}
 
 	d.SetId(f.Name)
@@ -84,10 +95,10 @@ func resourceFeatureToggleRead(d *schema.ResourceData, metaRaw interface{}) erro
 	d.Set(DESCRIPTION, f.Description)
 	d.Set(ENABLED, f.Enabled)
 
-	return nil
+	return diags
 }
 
-func resourceFeatureToggleUpdate(d *schema.ResourceData, metaRaw interface{}) error {
+func resourceFeatureToggleUpdate(ctx context.Context, d *schema.ResourceData, metaRaw interface{}) diag.Diagnostics {
 	client := metaRaw.(*api.Client)
 
 	// TODO: Support more fields
@@ -100,31 +111,26 @@ func resourceFeatureToggleUpdate(d *schema.ResourceData, metaRaw interface{}) er
 
 	err := client.UpdateFeatureFlag(d.Id(), f)
 	if err != nil {
-		return fmt.Errorf("could not update feature toggle '%s': %w", d.Get(NAME), err)
+		return diag.FromErr(fmt.Errorf("could not update feature toggle '%s': %w", d.Get(NAME), err))
 	}
 
-	return resourceFeatureToggleRead(d, metaRaw)
+	return resourceFeatureToggleRead(ctx, d, metaRaw)
 }
 
-func resourceFeatureToggleDelete(d *schema.ResourceData, metaRaw interface{}) error {
+func resourceFeatureToggleDelete(ctx context.Context, d *schema.ResourceData, metaRaw interface{}) diag.Diagnostics {
 	client := metaRaw.(*api.Client)
+
+	// Warning or errors can be collected in a slice type
+	var diags diag.Diagnostics
+
 	if err := client.DeleteFeatureFlag(d.Id()); err != nil {
-		return fmt.Errorf("could not delete feature toggle '%s': %w", d.Get(NAME), err)
+		return diag.FromErr(fmt.Errorf("could not delete feature toggle '%s': %w", d.Get(NAME), err))
 	}
 
-	return nil
+	return diags
 }
 
-func resourceFeatureToggleExists(d *schema.ResourceData, metaRaw interface{}) (bool, error) {
-	client := metaRaw.(*api.Client)
-	toggleName := d.Get(NAME).(string)
-
-	f, err := client.FeatureFlagByName(toggleName)
-
-	return f != nil, err
-}
-
-func resourceFeatureToggleImport(d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
+func resourceFeatureToggleImport(ctx context.Context, d *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
 	id := d.Id()
 
 	_ = d.Set(NAME, id)

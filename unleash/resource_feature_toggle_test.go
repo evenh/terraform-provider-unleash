@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/helper/acctest"
-	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/acctest"
+	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 
 	"github.com/evenh/terraform-provider-unleash/unleash/acceptance"
 )
@@ -25,7 +25,7 @@ func TestAccUnleashFeatureToggle_basic(t *testing.T) {
 	resourceName := "unleash_feature_toggle.basic"
 
 	resource.ParallelTest(t, resource.TestCase{
-		Providers: testAccProviders,
+		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccUnleashFeatureToggle_basic(id),
@@ -49,7 +49,7 @@ func TestAccUnleashFeatureToggle_update(t *testing.T) {
 	resourceName := "unleash_feature_toggle.basic"
 
 	resource.ParallelTest(t, resource.TestCase{
-		Providers: testAccProviders,
+		ProviderFactories: testAccProviderFactories,
 		Steps: []resource.TestStep{
 			{
 				Config: testAccUnleashFeatureToggle_basic(id),
