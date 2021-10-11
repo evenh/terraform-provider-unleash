@@ -6,5 +6,6 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/go-resty/resty/v2 v2.6.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.8.0
-	github.com/testcontainers/testcontainers-go v0.9.0
+	github.com/mattn/go-isatty v0.0.12 // indirect
+	github.com/testcontainers/testcontainers-go v0.11.1
 )
