@@ -86,7 +86,7 @@ github.com/docker/go-connections/tlsconfig
 github.com/docker/go-units
 # github.com/fatih/color v1.7.0
 github.com/fatih/color
-# github.com/go-resty/resty/v2 v2.6.0
+# github.com/go-resty/resty/v2 v2.7.0
 ## explicit
 github.com/go-resty/resty/v2
 # github.com/gogo/protobuf v1.3.2
