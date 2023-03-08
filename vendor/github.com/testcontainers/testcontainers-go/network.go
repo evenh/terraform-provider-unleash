@@ -3,6 +3,8 @@ package testcontainers
 import (
 	"context"
 
+	"github.com/docker/docker/api/types/network"
+
 	"github.com/docker/docker/api/types"
 )
 
@@ -17,6 +19,16 @@ type Network interface {
 	Remove(context.Context) error // removes the network
 }
 
+type DefaultNetwork string
+
+func (n DefaultNetwork) ApplyGenericTo(opts *GenericProviderOptions) {
+	opts.DefaultNetwork = string(n)
+}
+
+func (n DefaultNetwork) ApplyDockerTo(opts *DockerProviderOptions) {
+	opts.DefaultNetwork = string(n)
+}
+
 // NetworkRequest represents the parameters used to get a network
 type NetworkRequest struct {
 	Driver         string
@@ -26,7 +38,9 @@ type NetworkRequest struct {
 	Name           string
 	Labels         map[string]string
 	Attachable     bool
+	IPAM           *network.IPAM
 
-	SkipReaper  bool   // indicates whether we skip setting up a reaper for this
-	ReaperImage string //alternative reaper registry
+	SkipReaper    bool              // indicates whether we skip setting up a reaper for this
+	ReaperImage   string            // Deprecated: use WithImageName ContainerOption instead. Alternative reaper registry
+	ReaperOptions []ContainerOption // Reaper options to use for this network
 }
